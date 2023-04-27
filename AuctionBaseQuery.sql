@@ -1,82 +1,80 @@
-DROP TYPE IF EXISTS user_type CASCADE;
-CREATE TYPE user_type AS ENUM ('Admin', 'User', 'Guest');
+DROP TYPE IF EXISTS UserType CASCADE;
+CREATE TYPE UserType AS ENUM ('ADMIN', 'USER', 'GUEST');
 
 CREATE OR REPLACE PROCEDURE set_default_price()
 language plpgsql
 AS $$ 
 begin
-	update Lots
-	set CurrentPrice = MinPrice;
+	update lots
+	set current_price = min_price;
 end;
 $$;
 
-DROP TABLE IF EXISTS  UsersTypes CASCADE;
-CREATE TABLE IF NOT EXISTS UsersTypes (TypeId SERIAL PRIMARY KEY,
-									 Type user_type NOT NULL);
-
-DROP TABLE IF EXISTS  Users CASCADE;
-CREATE TABLE IF NOT EXISTS Users (UserId SERIAL PRIMARY KEY, 
-					TypeId INT NOT NULL,			  
-					CONSTRAINT users_types_fk FOREIGN KEY (TypeId)
-								  REFERENCES UsersTypes(TypeId),			   					
-					UserBalance INT DEFAULT 0);
+DROP TABLE IF EXISTS  users CASCADE;
+CREATE TABLE IF NOT EXISTS users (user_id SERIAL PRIMARY KEY, 
+					user_type UserType NOT NULL,
+					user_balance NUMERIC DEFAULT 0.0);
 					
-DROP TABLE IF EXISTS UsersData CASCADE;
-CREATE TABLE IF NOT EXISTS UsersData (UserDataId SERIAL PRIMARY KEY,
-									UserId INT NOT NULL,
-									CONSTRAINT userdata_user_fk FOREIGN KEY (UserId)
-											REFERENCES Users(UserId) ON DELETE CASCADE,
+DROP TABLE IF EXISTS users_data CASCADE;
+CREATE TABLE IF NOT EXISTS users_data (user_data_id SERIAL PRIMARY KEY,
+									user_id INT NOT NULL,
+									CONSTRAINT userdata_user_fk FOREIGN KEY (user_id)
+											REFERENCES users(user_id) ON DELETE CASCADE,
 									Name VARCHAR(30) NOT NULL,
-									Surname VARCHAR(30) NOT NULL,
-									Age INT,
-									Telephone VARCHAR(20),
-									Email VARCHAR(30),
-									Address VARCHAR(50),
-									Photo BYTEA);
+									surname VARCHAR(30) NOT NULL,
+									age INT,
+									telephone VARCHAR(20),
+									email VARCHAR(30),
+									address VARCHAR(50),
+									photo BYTEA);
 
-DROP TABLE IF EXISTS AuthorizationsData CASCADE;
-CREATE TABLE IF NOT EXISTS AuthorizationsData (AuthorizationId SERIAL PRIMARY KEY,
-											 UserId INT NOT NULL,
-											 CONSTRAINT authorization_user FOREIGN KEY (UserId)
-											 		REFERENCES Users(UserId) ON DELETE CASCADE,
-											 Login VARCHAR(20),
-											 Password VARCHAR(20));
+DROP TABLE IF EXISTS authorizations_data CASCADE;
+CREATE TABLE IF NOT EXISTS authorizations_data (authorization_id SERIAL PRIMARY KEY,
+											 user_id INT NOT NULL,
+											 CONSTRAINT authorization_user FOREIGN KEY (user_id)
+											 		REFERENCES users(user_id) ON DELETE CASCADE,
+											 login VARCHAR(20),
+											 password VARCHAR(20));
 					
-DROP TABLE IF EXISTS Bets CASCADE;					
-CREATE TABLE IF NOT EXISTS Bets (BetId SERIAL PRIMARY KEY,
-								UserId INT NOT NULL,
-								CONSTRAINT bet_user_fk FOREIGN KEY (UserId)
-											REFERENCES Users(UserId) ON DELETE CASCADE,
-								BetPrice MONEY NOT NULL);
+DROP TABLE IF EXISTS bets CASCADE;					
+CREATE TABLE IF NOT EXISTS bets (bet_id SERIAL PRIMARY KEY,
+								user_id INT NOT NULL,
+								CONSTRAINT bet_user_fk FOREIGN KEY (user_id)
+											REFERENCES users(user_id) ON DELETE CASCADE,
+								bet_price NUMERIC NOT NULL);
 								
-DROP TABLE IF EXISTS Lots CASCADE;								
-CREATE TABLE IF NOT EXISTS Lots (LotId SERIAL PRIMARY KEY,
-							UserOwnerId INT NOT NULL,	
-							PropertyId INT,
-							CONSTRAINT lots_users_fk FOREIGN KEY (UserOwnerId)
-											REFERENCES Users (UserId) ON DELETE CASCADE,
-							SoldUntil DATE,
-							MinPrice MONEY,							
-							LastUserCustomerId INT,
-							CONSTRAINT lots_bets_user_fk FOREIGN KEY (LastUserCustomerId)
-											REFERENCES Users(UserId) ON DELETE CASCADE,	 
-							CurrentPrice MONEY);
+DROP TABLE IF EXISTS lots CASCADE;								
+CREATE TABLE IF NOT EXISTS lots (lot_id SERIAL PRIMARY KEY,
+							user_owner_id INT NOT NULL, --NOT NULL					
+							CONSTRAINT lots_users_fk FOREIGN KEY (user_owner_id)
+											REFERENCES users(user_id) ON DELETE CASCADE,
+							property_id INT,
+							sold_until DATE,
+							min_price NUMERIC,							
+							last_customer_id INT,
+							CONSTRAINT lots_last_user_fk FOREIGN KEY (last_customer_id)
+											REFERENCES users(user_id) ON DELETE CASCADE,	 
+							current_price NUMERIC);
 							
 							
-DROP TABLE IF EXISTS Properties CASCADE;								
-CREATE TABLE IF NOT EXISTS Properties (PropertyId SERIAL PRIMARY KEY,
-									   LotId INT NOT NULL,
-									   CONSTRAINT properties_lots_fk FOREIGN KEY (LotId)
-									  					REFERENCES Lots(LotId) ON DELETE CASCADE,
-									   Weight INT,
-									   Size INT,
-									   Description VARCHAR(150),
-									   Photo BYTEA);
+DROP TABLE IF EXISTS lots_properties CASCADE;								
+CREATE TABLE IF NOT EXISTS lots_properties (property_id SERIAL PRIMARY KEY,
+									   lot_id INT NOT NULL, --NOT NULL -- was UNIQUE 
+									   CONSTRAINT properties_lots_fk FOREIGN KEY (lot_id)
+									  					REFERENCES lots(lot_id) ON DELETE CASCADE,
+									   weight INT,
+									   size INT,
+									   description VARCHAR(150),
+									   photo BYTEA);
+								   
 									   
-DROP TABLE IF EXISTS Comissions CASCADE;								
-CREATE TABLE IF NOT EXISTS Comissions (ComissionId SERIAL PRIMARY KEY,
-									   LotId INT NOT NULL,
-									   CONSTRAINT commision_lots_fk FOREIGN KEY (LotId)
-									  				REFERENCES Lots(LotId) ON DELETE CASCADE,
-									   ComissionPersent INT DEFAULT 0,
-									   Total MONEY DEFAULT 0); 
+ALTER TABLE lots ADD CONSTRAINT lots_properties_fk FOREIGN KEY (property_id)
+								 			REFERENCES lots_properties(property_id) ON DELETE CASCADE;										   
+									   
+DROP TABLE IF EXISTS comissions CASCADE;								
+CREATE TABLE IF NOT EXISTS comissions (comission_id SERIAL PRIMARY KEY,
+									   lot_id INT NOT NULL,
+									   CONSTRAINT commision_lots_fk FOREIGN KEY (lot_id)
+									  				REFERENCES lots(lot_id) ON DELETE CASCADE,
+									   comission_persent INT DEFAULT 0,
+									   total NUMERIC DEFAULT 0.0); 
