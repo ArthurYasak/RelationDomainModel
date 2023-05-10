@@ -21,18 +21,18 @@ DROP TABLE IF EXISTS authorizations_data CASCADE;
 CREATE TABLE IF NOT EXISTS authorizations_data (authorization_id SERIAL PRIMARY KEY,
 											 user_id INT NOT NULL,
 											 CONSTRAINT authorization_user_fk FOREIGN KEY (user_id)
-											 		REFERENCES users(user_id) ON DELETE CASCADE,
+											 		REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
 											 login VARCHAR(20),
 											 password VARCHAR(20));
 											 
 ALTER TABLE	users ADD CONSTRAINT user_authorization_fk FOREIGN KEY (authorization_id)
-		REFERENCES authorizations_data (authorization_id) ON DELETE CASCADE;
+		REFERENCES authorizations_data (authorization_id) ON DELETE CASCADE ON UPDATE CASCADE;
 					
 DROP TABLE IF EXISTS users_data CASCADE;
 CREATE TABLE IF NOT EXISTS users_data (user_data_id SERIAL PRIMARY KEY,
 									user_id INT NOT NULL,
 									CONSTRAINT userdata_user_fk FOREIGN KEY (user_id)
-											REFERENCES users(user_id) ON DELETE CASCADE,
+											REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
 									Name VARCHAR(30) NOT NULL,
 									surname VARCHAR(30) NOT NULL,
 									age INT,
@@ -42,50 +42,53 @@ CREATE TABLE IF NOT EXISTS users_data (user_data_id SERIAL PRIMARY KEY,
 									photo BYTEA);
 									
 ALTER TABLE users ADD CONSTRAINT user_userdata_fk FOREIGN KEY (user_data_id)
-		REFERENCES users_data(user_data_id) ON DELETE CASCADE;									
+		REFERENCES users_data(user_data_id) ON DELETE CASCADE ON UPDATE CASCADE;									
 					
 DROP TABLE IF EXISTS bets CASCADE;					
 CREATE TABLE IF NOT EXISTS bets (bet_id SERIAL PRIMARY KEY,
-								user_owner_id INT NOT NULL,
+								user_owner_id INT,
 								CONSTRAINT bet_user_fk FOREIGN KEY (user_owner_id)
-											REFERENCES users(user_id) ON DELETE CASCADE,
+											REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
 								bet_price NUMERIC NOT NULL);
 								
 DROP TABLE IF EXISTS lots CASCADE;								
 CREATE TABLE IF NOT EXISTS lots (lot_id SERIAL PRIMARY KEY,
-							user_owner_id INT NOT NULL,			
+							user_owner_id INT,			
 							CONSTRAINT lots_users_fk FOREIGN KEY (user_owner_id)
-											REFERENCES users(user_id) ON DELETE CASCADE,
+									REFERENCES users(user_id) ON DELETE CASCADE  ON UPDATE CASCADE,
 							property_id INT UNIQUE,
 						    CONSTRAINT lots_properties_fk FOREIGN KEY (property_id)
-							 	 			REFERENCES lots_properties(property_id) ON DELETE CASCADE,	 
+									REFERENCES lots_properties(property_id) ON DELETE CASCADE  ON UPDATE CASCADE,	 
 							
 							sold_until DATE,
 							min_price NUMERIC DEFAULT 1.0,							
 							last_customer_id INT,
 							CONSTRAINT lots_last_user_fk FOREIGN KEY (last_customer_id)
-											REFERENCES users(user_id) ON DELETE CASCADE,	 
-							current_price NUMERIC);
+											REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,	 
+							current_price NUMERIC,
+							commission_id INT );
 							
 							
 DROP TABLE IF EXISTS lots_properties CASCADE;								
 CREATE TABLE IF NOT EXISTS lots_properties (property_id SERIAL PRIMARY KEY,
 									   lot_id INT UNIQUE NOT NULL,
 									   CONSTRAINT properties_lots_fk FOREIGN KEY (lot_id)
-									  					REFERENCES lots(lot_id) ON DELETE CASCADE,
+									  					REFERENCES lots(lot_id) ON DELETE CASCADE ON UPDATE CASCADE,
 									   weight INT,
 									   size INT,
 									   description VARCHAR(150),
 									   photo BYTEA);
-								   
-									   
+								   									   
 ALTER TABLE lots ADD CONSTRAINT lots_properties_fk FOREIGN KEY (property_id)
-								 			REFERENCES lots_properties(property_id) ON DELETE CASCADE;										   
+		REFERENCES lots_properties(property_id) ON DELETE CASCADE ON UPDATE CASCADE ;										   
 									   
 DROP TABLE IF EXISTS commissions CASCADE;								
 CREATE TABLE IF NOT EXISTS commissions (commission_id SERIAL PRIMARY KEY,
 									   lot_id INT NOT NULL,
-									   CONSTRAINT commision_lots_fk FOREIGN KEY (lot_id)
-									  				REFERENCES lots(lot_id) ON DELETE CASCADE,
+									   CONSTRAINT commissions_lots_fk FOREIGN KEY (lot_id)
+									  				REFERENCES lots(lot_id) ON DELETE CASCADE ON UPDATE CASCADE,
 									   commission_percent NUMERIC DEFAULT 0.0,
 									   result NUMERIC DEFAULT 0.0); 
+
+ALTER TABLE lots ADD CONSTRAINT lots_commissions_fk FOREIGN KEY (commission_id)
+		REFERENCES commissions(commission_id) ON DELETE CASCADE ON UPDATE CASCADE;
